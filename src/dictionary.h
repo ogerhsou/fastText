@@ -77,7 +77,7 @@ class Dictionary {
     std::string getLabel(int32_t);
     void save(std::ostream&);
     void load(std::istream&);
-    void load(std::istream&, std::shared_ptr<Args>);
+    void loadWordOnly(std::istream&);
     std::vector<int64_t> getCounts(entry_type);
     void addNgrams(std::vector<int32_t>&, int32_t);
     int32_t getLine(std::istream&, std::vector<int32_t>&,

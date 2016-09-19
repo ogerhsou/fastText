@@ -71,7 +71,7 @@ void FastText::loadModel(const std::string& filename, std::shared_ptr<Args> args
     output_ = std::make_shared<Matrix>();
     args_->load(ifs);
     args_->attrDir = args->attrDir;
-    dict_->load(ifs, args_);
+    dict_->loadWordOnly(ifs);
     input_->load(ifs);
     output_->load(ifs);
     model_ = std::make_shared<Model>(input_, output_, args_, 0);
@@ -94,7 +94,7 @@ void FastText::loadModel(const std::string& filename) {
   input_ = std::make_shared<Matrix>();
   output_ = std::make_shared<Matrix>();
   args_->load(ifs);
-  dict_->load(ifs, args_);
+  dict_->load(ifs);
   input_->load(ifs);
   output_->load(ifs);
   model_ = std::make_shared<Model>(input_, output_, args_, 0);

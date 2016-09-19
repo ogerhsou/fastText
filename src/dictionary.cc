@@ -431,10 +431,14 @@ void Dictionary::load(std::istream& in) {
     word2int_[find(e.word)] = i;
   }
   initTableDiscard();
+  if (!args_->useAttr)
+    initNgrams();
+  else
+    initNgrams(args_->attrDir);
   initNgrams();
 }
 
-void Dictionary::load(std::istream& in, std::shared_ptr<Args> args) {
+void Dictionary::loadWordOnly(std::istream& in) {
   words_.clear();
   for (int32_t i = 0; i < MAX_VOCAB_SIZE; i++) {
     word2int_[i] = -1;
@@ -454,7 +458,7 @@ void Dictionary::load(std::istream& in, std::shared_ptr<Args> args) {
     words_.push_back(e);
     word2int_[find(e.word)] = i;
   }
-  initTableDiscard();
+//  initTableDiscard();
   //cannot init ngrams now!
 //  if (!args->useAttr)
 //    initNgrams();
