@@ -435,7 +435,6 @@ void Dictionary::load(std::istream& in) {
     initNgrams();
   else
     initNgrams(args_->attrDir);
-  initNgrams();
 }
 
 void Dictionary::loadWordOnly(std::istream& in) {
