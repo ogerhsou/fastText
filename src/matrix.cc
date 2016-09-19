@@ -49,10 +49,24 @@ Matrix::~Matrix() {
   delete[] data_;
 }
 
+void Matrix::zero(int64_t startPos, int64_t endPos) {
+    for (int64_t i = startPos; i < (endPos * n_); i++) {
+        data_[i] = 0.0;
+    }
+}
+
 void Matrix::zero() {
   for (int64_t i = 0; i < (m_ * n_); i++) {
       data_[i] = 0.0;
   }
+}
+
+void Matrix::uniform(real a, int64_t startPos, int64_t endPos) {
+    std::minstd_rand rng(1);
+    std::uniform_real_distribution<> uniform(-a, a);
+    for (int64_t i = startPos * n_; i < (endPos * n_); i++) {
+        data_[i] = uniform(rng);
+    }
 }
 
 void Matrix::uniform(real a) {

@@ -41,7 +41,10 @@ class Args {
     std::string label;
     int verbose;
 
-    void parseArgs(int, char**);
+    int useAttr;
+    std::string attrDir;
+
+    void parseArgs(int, char**, int);
     void printHelp();
     void save(std::ostream&);
     void load(std::istream&);

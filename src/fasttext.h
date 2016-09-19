@@ -38,6 +38,7 @@ class FastText {
     void saveVectors();
     void saveModel();
     void loadModel(const std::string&);
+    void loadModel(const std::string&, std::shared_ptr<Args>);
     void printInfo(real, real);
 
     void supervised(Model&, real, const std::vector<int32_t>&,
@@ -51,6 +52,7 @@ class FastText {
     void printVectors();
     void trainThread(int32_t);
     void train(std::shared_ptr<Args>);
+    void trainOldModel(std::shared_ptr<Args>, char**);
 };
 
 #endif

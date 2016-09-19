@@ -59,6 +59,30 @@ void FastText::saveModel() {
   ofs.close();
 }
 
+void FastText::loadModel(const std::string& filename, std::shared_ptr<Args> args) {
+    std::ifstream ifs(filename, std::ifstream::binary);
+    if (!ifs.is_open()) {
+        std::cerr << "Model file cannot be opened for loading!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    args_ = std::make_shared<Args>();
+    dict_ = std::make_shared<Dictionary>(args_);
+    input_ = std::make_shared<Matrix>();
+    output_ = std::make_shared<Matrix>();
+    args_->load(ifs);
+    args_->attrDir = args->attrDir;
+    dict_->load(ifs, args_);
+    input_->load(ifs);
+    output_->load(ifs);
+    model_ = std::make_shared<Model>(input_, output_, args_, 0);
+    if (args_->model == model_name::sup) {
+        model_->setTargetCounts(dict_->getCounts(entry_type::label));
+    } else {
+        model_->setTargetCounts(dict_->getCounts(entry_type::word));
+    }
+    ifs.close();
+}
+
 void FastText::loadModel(const std::string& filename) {
   std::ifstream ifs(filename, std::ifstream::binary);
   if (!ifs.is_open()) {
@@ -70,7 +94,7 @@ void FastText::loadModel(const std::string& filename) {
   input_ = std::make_shared<Matrix>();
   output_ = std::make_shared<Matrix>();
   args_->load(ifs);
-  dict_->load(ifs);
+  dict_->load(ifs, args_);
   input_->load(ifs);
   output_->load(ifs);
   model_ = std::make_shared<Model>(input_, output_, args_, 0);
@@ -274,6 +298,81 @@ void FastText::trainThread(int32_t threadId) {
   ifs.close();
 }
 
+void FastText::trainOldModel(std::shared_ptr<Args> args, char **argv) {
+  //load orginal model
+  this->loadModel(std::string(argv[2]), args);
+
+  args_ = args;
+  //read new input
+  std::ifstream ifs(args_->input);
+  if (!ifs.is_open()) {
+    std::cerr << "Input file cannot be opened!" << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  //make new dict
+  dict_->readFromFile(ifs, std::string(argv[1]));
+  ifs.close();
+  
+  //tmpInput to resize input_
+  auto tmpInput = std::make_shared<Matrix>(dict_->nwords()+args_->bucket, args_->dim);
+  auto oldWordSize = input_->m_ - args_->bucket;
+  //copy old word vector to new input_
+  for (int64_t i = 0; i < (oldWordSize * input_->n_); i++) {
+    tmpInput->data_[i] = input_->data_[i];
+  }
+  //newword - oldword size to shift subword
+  auto shiftSize = (dict_->nwords() - oldWordSize) * input_->n_;
+  //shift subword vector
+  for (int64_t i = (oldWordSize * input_->n_); i < (input_->m_ * input_->n_); i++) {
+    tmpInput->data_[i + shiftSize] = input_->data_[i];
+  }
+  //make new input_
+  input_ = tmpInput;
+  //initialize new vector of new word
+  input_->uniform(1.0 / args_->dim, oldWordSize, dict_->nwords());
+  
+//  input_ = std::make_shared<Matrix>(dict_->nwords()+args_->bucket, args_->dim);
+//  input_->uniform(1.0 / args_->dim);
+  
+//  if (args_->model == model_name::sup) {
+//    output_ = std::make_shared<Matrix>(dict_->nlabels(), args_->dim);
+//  } else {
+//    output_ = std::make_shared<Matrix>(dict_->nwords(), args_->dim);
+//  }
+//  output_->zero();
+
+  if (args_->model == model_name::sup) {
+    std::cout << "Not complete sup yet!" << std::endl;
+    return;
+  }
+  //tmpOut to resize output_
+  auto tmpOutput = std::make_shared<Matrix>(dict_->nwords(), args_->dim);
+  //copy old word vector to new output_
+  for (int64_t i = 0; i < (output_->m_ * output_->n_); i++) {
+    tmpOutput->data_[i] = output_->data_[i];
+  }
+  //make new output_
+  output_ = tmpOutput;
+  //initialize new word vector by zero
+  output_->zero(oldWordSize, dict_->nwords());
+  
+  start = clock();
+  tokenCount = 0;
+  std::vector<std::thread> threads;
+  for (int32_t i = 0; i < args_->thread; i++) {
+    threads.push_back(std::thread([=]() { trainThread(i); }));
+  }
+  for (auto it = threads.begin(); it != threads.end(); ++it) {
+    it->join();
+  }
+  model_ = std::make_shared<Model>(input_, output_, args_, 0);
+
+  saveModel();
+  if (args_->model != model_name::sup) {
+    saveVectors();
+  }
+}
+
 void FastText::train(std::shared_ptr<Args> args) {
   args_ = args;
   dict_ = std::make_shared<Dictionary>(args_);
@@ -396,9 +495,17 @@ void printVectors(int argc, char** argv) {
 
 void train(int argc, char** argv) {
   std::shared_ptr<Args> a = std::make_shared<Args>();
-  a->parseArgs(argc, argv);
+  a->parseArgs(argc, argv, 1);
   FastText fasttext;
   fasttext.train(a);
+}
+
+
+void trainOldModel(int argc, char** argv) {
+  std::shared_ptr<Args> a = std::make_shared<Args>();
+  a->parseArgs(argc, argv, 3);
+  FastText fasttext;
+  fasttext.trainOldModel(a, argv);
 }
 
 int main(int argc, char** argv) {
@@ -416,7 +523,10 @@ int main(int argc, char** argv) {
     printVectors(argc, argv);
   } else if (command == "predict" || command == "predict-prob" ) {
     predict(argc, argv);
-  } else {
+  } else if (command == "retrain") {
+    trainOldModel(argc, argv);
+  }
+  else {
     printUsage();
     exit(EXIT_FAILURE);
   }

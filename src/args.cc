@@ -32,10 +32,11 @@ Args::Args() {
   t = 1e-4;
   label = "__label__";
   verbose = 2;
+  useAttr = true;
 }
 
-void Args::parseArgs(int argc, char** argv) {
-  std::string command(argv[1]);
+void Args::parseArgs(int argc, char** argv, int cmdSub) {
+  std::string command(argv[cmdSub]);
   if (command == "supervised") {
     model = model_name::sup;
     loss = loss_name::softmax;
@@ -46,7 +47,8 @@ void Args::parseArgs(int argc, char** argv) {
   } else if (command == "cbow") {
     model = model_name::cbow;
   }
-  int ai = 2;
+
+  int ai = cmdSub + 1;
   while (ai < argc) {
     if (argv[ai][0] != '-') {
       std::cout << "Provided argument without a dash! Usage:" << std::endl;
@@ -57,6 +59,8 @@ void Args::parseArgs(int argc, char** argv) {
       std::cout << "Here is the help! Usage:" << std::endl;
       printHelp();
       exit(EXIT_FAILURE);
+    } else if (useAttr && strcmp(argv[ai], "-attr") == 0) {
+      attrDir = std::string(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-input") == 0) {
       input = std::string(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-test") == 0) {
@@ -117,6 +121,11 @@ void Args::parseArgs(int argc, char** argv) {
     printHelp();
     exit(EXIT_FAILURE);
   }
+  if (useAttr && attrDir.empty()) {
+    std::cout << "Empty attr path." << std::endl;
+    printHelp();
+    exit(EXIT_FAILURE);
+  }
   if (wordNgrams <= 1 && maxn == 0) {
     bucket = 0;
   }
@@ -127,7 +136,8 @@ void Args::printHelp() {
     << "\n"
     << "The following arguments are mandatory:\n"
     << "  -input        training file path\n"
-    << "  -output       output file path\n\n"
+    << "  -output       output file path\n"
+    << "  -attr       attr file path if useAttr flag is true\n\n"
     << "The following arguments are optional:\n"
     << "  -lr           learning rate [" << lr << "]\n"
     << "  -lrUpdateRate change the rate of updates for the learning rate [" << lrUpdateRate << "]\n"
@@ -162,6 +172,11 @@ void Args::save(std::ostream& out) {
   out.write((char*) &(maxn), sizeof(int));
   out.write((char*) &(lrUpdateRate), sizeof(int));
   out.write((char*) &(t), sizeof(double));
+  out.write((char*) &(useAttr), sizeof(int));
+  int len = attrDir.size();
+  out.write((char*) &(len), sizeof(int));
+  out.write(attrDir.c_str(), sizeof(char)*attrDir.size());
+
 }
 
 void Args::load(std::istream& in) {
@@ -178,4 +193,11 @@ void Args::load(std::istream& in) {
   in.read((char*) &(maxn), sizeof(int));
   in.read((char*) &(lrUpdateRate), sizeof(int));
   in.read((char*) &(t), sizeof(double));
+  in.read((char*) &(useAttr), sizeof(int));
+  int len;
+  in.read((char*) &(len), sizeof(int));
+  char *tmpStr = new char[len];
+  in.read(tmpStr, sizeof(char)*len);
+  attrDir = tmpStr;
+  delete[] tmpStr;
 }

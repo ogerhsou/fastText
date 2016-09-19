@@ -16,6 +16,7 @@
 #include <ostream>
 #include <random>
 #include <memory>
+#include <unordered_map>
 
 #include "args.h"
 #include "real.h"
@@ -38,7 +39,9 @@ class Dictionary {
     int32_t find(const std::string&);
     void initTableDiscard();
     void initNgrams();
+    void initNgrams(std::string);
     void threshold(int64_t);
+    void threshold(int64_t, const int oriSize);
 
     std::shared_ptr<Args> args_;
     std::vector<int32_t> word2int_;
@@ -65,13 +68,16 @@ class Dictionary {
     const std::vector<int32_t>& getNgrams(int32_t);
     const std::vector<int32_t> getNgrams(const std::string&);
     void computeNgrams(const std::string&, std::vector<int32_t>&);
+    void computeNgramsNew(const std::string&, std::vector<int32_t>&, std::unordered_map<std::string, std::vector<std::string> > &);
     uint32_t hash(const std::string& str);
     void add(const std::string&);
     bool readWord(std::istream&, std::string&);
     void readFromFile(std::istream&);
+    void readFromFile(std::istream&, std::string);
     std::string getLabel(int32_t);
     void save(std::ostream&);
     void load(std::istream&);
+    void load(std::istream&, std::shared_ptr<Args>);
     std::vector<int64_t> getCounts(entry_type);
     void addNgrams(std::vector<int32_t>&, int32_t);
     int32_t getLine(std::istream&, std::vector<int32_t>&,

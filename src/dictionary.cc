@@ -12,10 +12,12 @@
 #include <assert.h>
 
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <iterator>
 #include <unordered_map>
 #include <cctype>
+#include <sstream>
 
 const std::string Dictionary::EOS = "</s>";
 const std::string Dictionary::BOW = "<";
@@ -118,6 +120,17 @@ uint32_t Dictionary::hash(const std::string& str) {
   return h;
 }
 
+void Dictionary::computeNgramsNew(const std::string& word,
+                                  std::vector<int32_t>& ngrams, std::unordered_map<std::string, std::vector<std::string> > &attr_map) {
+  if (attr_map.count(word)==0) return;
+  auto vec = attr_map[word];
+  for (size_t j = 0; j < vec.size(); ++j) {
+    std::string ngram = vec[j];
+    int32_t h = hash(ngram) % args_->bucket;
+    ngrams.push_back(nwords_ + h);
+  }
+}
+
 void Dictionary::computeNgrams(const std::string& word,
                                std::vector<int32_t>& ngrams) {
   for (size_t i = 0; i < word.size(); i++) {
@@ -135,6 +148,31 @@ void Dictionary::computeNgrams(const std::string& word,
     }
   }
 }
+
+void Dictionary::initNgrams(std::string ifs_file_str) {
+
+  std::unordered_map<std::string, std::vector<std::string> > attr_map;
+  std::ifstream ifs(ifs_file_str);
+
+  std::string sku_id, sku_attr;
+  while (getline(ifs, sku_attr)) {
+    std::stringstream ss(sku_attr);
+    ss >> sku_id;
+    std::string attr;
+    std::vector<std::string> attr_lst;
+    while (ss >> attr) {
+      attr_lst.push_back(attr);
+    }
+    attr_map[sku_id] = attr_lst;
+  }
+
+  for (size_t i = 0; i < size_; i++) {
+    std::string word = words_[i].word;
+    words_[i].subwords.push_back(i);
+    computeNgramsNew(word, words_[i].subwords, attr_map);
+  }
+}
+
 
 void Dictionary::initNgrams() {
   for (size_t i = 0; i < size_; i++) {
@@ -182,7 +220,10 @@ void Dictionary::readFromFile(std::istream& in) {
   std::cout << "\rRead " << ntokens_  / 1000000 << "M words" << std::endl;
   threshold(args_->minCount);
   initTableDiscard();
-  initNgrams();
+  if (!args_->useAttr)
+    initNgrams();
+  else
+    initNgrams(args_->attrDir);
   std::cout << "Number of words:  " << nwords_ << std::endl;
   std::cout << "Number of labels: " << nlabels_ << std::endl;
   if (size_ == 0) {
@@ -191,14 +232,92 @@ void Dictionary::readFromFile(std::istream& in) {
   }
 }
 
+void Dictionary::readFromFile(std::istream& in, std::string funcType) {
+  const int32_t oriSize = size_;
+  std::string word;
+  int64_t minThreshold = 1;
+  while (readWord(in, word)) {
+    add(word);
+    if (ntokens_ % 1000000 == 0 && args_->verbose > 1) {
+      std::cout << "\rRead " << ntokens_  / 1000000 << "M words" << std::flush;
+    }
+    if (size_ > 0.75 * MAX_VOCAB_SIZE) {
+      if (funcType.compare("retrain") == 0) threshold(minThreshold++, oriSize);
+      else threshold(minThreshold++);
+    }
+  }
+  std::cout << "\rRead " << ntokens_  / 1000000 << "M words" << std::endl;
+  if (funcType.compare("retrain") == 0) threshold(args_->minCount, oriSize);
+  else threshold(args_->minCount);
+  initTableDiscard();
+  if (!args_->useAttr)
+    initNgrams();
+  else
+    initNgrams(args_->attrDir);
+  std::cout << "Number of words:  " << nwords_ << std::endl;
+  std::cout << "Number of labels: " << nlabels_ << std::endl;
+  if (size_ == 0) {
+    std::cerr << "Empty vocabulary. Try a smaller -minCount value." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+}
+
+
+//void Dictionary::readFromFile(std::istream& in) {
+//  std::string word;
+//  int64_t minThreshold = 1;
+//  while (readWord(in, word)) {
+//    add(word);
+//    if (ntokens_ % 1000000 == 0 && args_->verbose > 1) {
+//      std::cout << "\rRead " << ntokens_  / 1000000 << "M words" << std::flush;
+//    }
+//    if (size_ > 0.75 * MAX_VOCAB_SIZE) {
+//      threshold(minThreshold++);
+//    }
+//  }
+//  std::cout << "\rRead " << ntokens_  / 1000000 << "M words" << std::endl;
+//  threshold(args_->minCount);
+//  initTableDiscard();
+//  initNgrams();
+//  std::cout << "Number of words:  " << nwords_ << std::endl;
+//  std::cout << "Number of labels: " << nlabels_ << std::endl;
+//  if (size_ == 0) {
+//    std::cerr << "Empty vocabulary. Try a smaller -minCount value." << std::endl;
+//    exit(EXIT_FAILURE);
+//  }
+//}
+
+void Dictionary::threshold(int64_t t, const int32_t oriSize) {
+  sort(words_.begin()+oriSize, words_.end(), [](const entry &e1, const entry &e2) {
+      if (e1.type != e2.type) return e1.type < e2.type;
+      return e1.count > e2.count;
+  });
+  words_.erase(remove_if(words_.begin()+oriSize, words_.end(), [&](const entry &e) {
+      return e.type == entry_type::word && e.count < t;
+  }), words_.end());
+  words_.shrink_to_fit();
+  size_ = 0;
+  nwords_ = 0;
+  nlabels_ = 0;
+  for (int32_t i = 0; i < MAX_VOCAB_SIZE; i++) {
+    word2int_[i] = -1;
+  }
+  for (auto it = words_.begin(); it != words_.end(); ++it) {
+    int32_t h = find(it->word);
+    word2int_[h] = size_++;
+    if (it->type == entry_type::word) nwords_++;
+    if (it->type == entry_type::label) nlabels_++;
+  }
+}
+
 void Dictionary::threshold(int64_t t) {
   sort(words_.begin(), words_.end(), [](const entry& e1, const entry& e2) {
       if (e1.type != e2.type) return e1.type < e2.type;
       return e1.count > e2.count;
-    });
+  });
   words_.erase(remove_if(words_.begin(), words_.end(), [&](const entry& e) {
-        return e.type == entry_type::word && e.count < t;
-      }), words_.end());
+      return e.type == entry_type::word && e.count < t;
+  }), words_.end());
   words_.shrink_to_fit();
   size_ = 0;
   nwords_ = 0;
@@ -313,4 +432,32 @@ void Dictionary::load(std::istream& in) {
   }
   initTableDiscard();
   initNgrams();
+}
+
+void Dictionary::load(std::istream& in, std::shared_ptr<Args> args) {
+  words_.clear();
+  for (int32_t i = 0; i < MAX_VOCAB_SIZE; i++) {
+    word2int_[i] = -1;
+  }
+  in.read((char*) &size_, sizeof(int32_t));
+  in.read((char*) &nwords_, sizeof(int32_t));
+  in.read((char*) &nlabels_, sizeof(int32_t));
+  in.read((char*) &ntokens_, sizeof(int64_t));
+  for (int32_t i = 0; i < size_; i++) {
+    char c;
+    entry e;
+    while ((c = in.get()) != 0) {
+      e.word.push_back(c);
+    }
+    in.read((char*) &e.count, sizeof(int64_t));
+    in.read((char*) &e.type, sizeof(entry_type));
+    words_.push_back(e);
+    word2int_[find(e.word)] = i;
+  }
+  initTableDiscard();
+  //cannot init ngrams now!
+//  if (!args->useAttr)
+//    initNgrams();
+//  else
+//    initNgrams(args->attrDir);
 }
