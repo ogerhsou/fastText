@@ -14,7 +14,7 @@
 #include <ostream>
 #include <string>
 
-enum class model_name : int {cbow=1, sg, sup};
+enum class model_name : int {cbow=1, sg, sup, cbow_bi};
 enum class loss_name : int {hs=1, ns, softmax};
 
 class Args {

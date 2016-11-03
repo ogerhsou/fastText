@@ -21,18 +21,18 @@ Args::Args() {
   epoch = 5;
   minCount = 5;
   neg = 5;
-  wordNgrams = 1;
+  wordNgrams = 2;
   loss = loss_name::ns;
   model = model_name::sg;
-  bucket = 2000000;
+  bucket = 50000001;
   minn = 3;
   maxn = 6;
-  thread = 12;
+  thread = 16;
   lrUpdateRate = 100;
   t = 1e-4;
   label = "__label__";
   verbose = 2;
-  useAttr = true;
+  useAttr = false;
 }
 
 void Args::parseArgs(int argc, char** argv, int cmdSub) {
@@ -46,6 +46,8 @@ void Args::parseArgs(int argc, char** argv, int cmdSub) {
     lr = 0.1;
   } else if (command == "cbow") {
     model = model_name::cbow;
+  } else if (command == "cbow_bi") {
+    model = model_name::cbow_bi;
   }
 
   int ai = cmdSub + 1;

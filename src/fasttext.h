@@ -44,6 +44,7 @@ class FastText {
     void supervised(Model&, real, const std::vector<int32_t>&,
                     const std::vector<int32_t>&);
     void cbow(Model&, real, const std::vector<int32_t>&);
+    void cbow_bi(Model&, real, std::vector<int32_t>&);
     void skipgram(Model&, real, const std::vector<int32_t>&);
     void test(const std::string&, int32_t);
     void predict(const std::string&, int32_t, bool);

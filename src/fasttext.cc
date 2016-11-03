@@ -148,6 +148,23 @@ void FastText::cbow(Model& model, real lr,
   }
 }
 
+void FastText::cbow_bi(Model& model, real lr,
+                    std::vector<int32_t>& line) {
+    std::vector<int32_t> bow;
+    std::uniform_int_distribution<> uniform(1, args_->ws);
+    for (int32_t w = 0; w < line.size(); w++) {
+        int32_t boundary = uniform(model.rng);
+        for (int32_t c = -2*boundary; c <= 0; c++) {
+            if (c != 0 && w + c >= 0 && w + c < line.size()) {
+                bow.push_back(line[w+c]);
+            }
+        }
+        dict_->addNgrams(bow, args_->wordNgrams);
+        model.update(bow, line[w], lr);
+        bow.clear();
+    }
+}
+
 void FastText::skipgram(Model& model, real lr,
                         const std::vector<int32_t>& line) {
   std::uniform_int_distribution<> uniform(1, args_->ws);
@@ -282,8 +299,10 @@ void FastText::trainThread(int32_t threadId) {
       cbow(model, lr, line);
     } else if (args_->model == model_name::sg) {
       skipgram(model, lr, line);
+    } else if (args_->model == model_name::cbow_bi) {
+        cbow_bi(model, lr, line);
     }
-    if (localTokenCount > args_->lrUpdateRate) {
+      if (localTokenCount > args_->lrUpdateRate) {
       tokenCount += localTokenCount;
       localTokenCount = 0;
       if (threadId == 0 && args_->verbose > 1) {
@@ -515,7 +534,7 @@ int main(int argc, char** argv) {
     exit(EXIT_FAILURE);
   }
   std::string command(argv[1]);
-  if (command == "skipgram" || command == "cbow" || command == "supervised") {
+  if (command == "skipgram" || command == "cbow" || command == "supervised" || command == "cbow_bi") {
     train(argc, argv);
   } else if (command == "test") {
     test(argc, argv);
