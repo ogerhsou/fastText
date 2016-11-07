@@ -33,12 +33,12 @@ struct entry {
 
 class Dictionary {
   private:
-    static const int32_t MAX_VOCAB_SIZE = 30000000;
+    static const int32_t MAX_VOCAB_SIZE = 5000000;
     static const int32_t MAX_LINE_SIZE = 1024;
 
     int32_t find(const std::string&);
     void initTableDiscard();
-    void initNgrams();
+    void initNgrams(model_name);
     void initNgrams(std::string);
     void threshold(int64_t);
     void threshold(int64_t, const int oriSize);

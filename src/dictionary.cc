@@ -174,11 +174,12 @@ void Dictionary::initNgrams(std::string ifs_file_str) {
 }
 
 
-void Dictionary::initNgrams() {
+void Dictionary::initNgrams(model_name m) {
   for (size_t i = 0; i < size_; i++) {
     std::string word = BOW + words_[i].word + EOW;
     words_[i].subwords.push_back(i);
-    computeNgrams(word, words_[i].subwords);
+    if (m!=model_name::cbow_bi)
+        computeNgrams(word, words_[i].subwords);
   }
 }
 
@@ -221,7 +222,7 @@ void Dictionary::readFromFile(std::istream& in) {
   threshold(args_->minCount);
   initTableDiscard();
   if (!args_->useAttr)
-    initNgrams();
+    initNgrams(args_->model);
   else
     initNgrams(args_->attrDir);
   std::cout << "Number of words:  " << nwords_ << std::endl;
@@ -251,7 +252,7 @@ void Dictionary::readFromFile(std::istream& in, std::string funcType) {
   else threshold(args_->minCount);
   initTableDiscard();
   if (!args_->useAttr)
-    initNgrams();
+    initNgrams(args_->model);
   else
     initNgrams(args_->attrDir);
   std::cout << "Number of words:  " << nwords_ << std::endl;
@@ -432,7 +433,7 @@ void Dictionary::load(std::istream& in) {
   }
   initTableDiscard();
   if (!args_->useAttr)
-    initNgrams();
+    initNgrams(args_->model);
   else
     initNgrams(args_->attrDir);
 }
