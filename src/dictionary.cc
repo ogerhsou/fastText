@@ -178,7 +178,7 @@ void Dictionary::initNgrams(model_name m) {
   for (size_t i = 0; i < size_; i++) {
     std::string word = BOW + words_[i].word + EOW;
     words_[i].subwords.push_back(i);
-    if (m!=model_name::cbow_bi)
+    if (m!=model_name::cbow_bi && m!=model_name::word2vec_sg)
         computeNgrams(word, words_[i].subwords);
   }
 }

@@ -48,6 +48,9 @@ void Args::parseArgs(int argc, char** argv, int cmdSub) {
     model = model_name::cbow;
   } else if (command == "cbow_bi") {
     model = model_name::cbow_bi;
+  } else if (command == "word2vec_sg") {
+    model = model_name::word2vec_sg;
+    bucket = 0;
   }
 
   int ai = cmdSub + 1;

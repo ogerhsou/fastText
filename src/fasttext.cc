@@ -297,7 +297,7 @@ void FastText::trainThread(int32_t threadId) {
       supervised(model, lr, line, labels);
     } else if (args_->model == model_name::cbow) {
       cbow(model, lr, line);
-    } else if (args_->model == model_name::sg) {
+    } else if (args_->model == model_name::sg || args_->model == model_name::word2vec_sg) {
       skipgram(model, lr, line);
     } else if (args_->model == model_name::cbow_bi) {
         cbow_bi(model, lr, line);
@@ -534,7 +534,7 @@ int main(int argc, char** argv) {
     exit(EXIT_FAILURE);
   }
   std::string command(argv[1]);
-  if (command == "skipgram" || command == "cbow" || command == "supervised" || command == "cbow_bi") {
+  if (command == "skipgram" || command == "cbow" || command == "supervised" || command == "cbow_bi" || command == "word2vec_sg") {
     train(argc, argv);
   } else if (command == "test") {
     test(argc, argv);

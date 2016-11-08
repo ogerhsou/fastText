@@ -33,7 +33,7 @@ struct entry {
 
 class Dictionary {
   private:
-    static const int32_t MAX_VOCAB_SIZE = 5000000;
+    static const int32_t MAX_VOCAB_SIZE = 100000000;
     static const int32_t MAX_LINE_SIZE = 1024;
 
     int32_t find(const std::string&);
