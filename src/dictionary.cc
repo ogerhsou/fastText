@@ -447,6 +447,7 @@ void Dictionary::loadWordOnly(std::istream& in) {
   in.read((char*) &nwords_, sizeof(int32_t));
   in.read((char*) &nlabels_, sizeof(int32_t));
   in.read((char*) &ntokens_, sizeof(int64_t));
+  ntokens_ = 0;
   for (int32_t i = 0; i < size_; i++) {
     char c;
     entry e;
