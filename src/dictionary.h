@@ -62,6 +62,7 @@ class Dictionary {
     int32_t nlabels();
     int64_t ntokens();
     int32_t getId(const std::string&);
+    int32_t getAttrsId(const std::string&);
     entry_type getType(int32_t);
     bool discard(int32_t, real);
     std::string getWord(int32_t);

@@ -87,6 +87,12 @@ const std::vector<int32_t> Dictionary::getNgrams(const std::string& word) {
   return ngrams;
 }
 
+int32_t Dictionary::getAttrsId(const std::string& attr) {
+  int32_t h = hash(attr) % args_->bucket;
+  return nwords_ + h;
+}
+
+
 bool Dictionary::discard(int32_t id, real rand) {
   assert(id >= 0);
   assert(id < nwords_);

@@ -18,9 +18,9 @@ Args::Args() {
   lr = 0.05;
   dim = 100;
   ws = 5;
-  epoch = 5;
-  minCount = 5;
-  neg = 5;
+  epoch = 1;
+  minCount = 1;
+  neg = 10;
   wordNgrams = 2;
   loss = loss_name::ns;
   model = model_name::sg;
@@ -32,7 +32,7 @@ Args::Args() {
   t = 1e-4;
   label = "__label__";
   verbose = 2;
-  useAttr = false;
+  useAttr = true;
 }
 
 void Args::parseArgs(int argc, char** argv, int cmdSub) {

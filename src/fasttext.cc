@@ -30,6 +30,13 @@ void FastText::getVector(Vector& vec, const std::string& word) {
   }
 }
 
+void FastText::getAttr(Vector& vec, const std::string& word) {
+  const auto attr_id = dict_->getAttrsId(word);
+  vec.zero();
+  vec.addRow(*input_, attr_id);
+}
+
+
 void FastText::saveVectors() {
   std::ofstream ofs(args_->output + ".vec");
   if (!ofs.is_open()) {
@@ -248,6 +255,16 @@ void FastText::wordVectors() {
     std::cout << word << " " << vec << std::endl;
   }
 }
+
+void FastText::printAttrs() {
+  std::string word;
+  Vector vec(args_->dim);
+  while (std::cin >> word) {
+    getAttr(vec, word);
+    std::cout << word << " " << vec << std::endl;
+  }
+}
+
 
 void FastText::textVectors() {
   std::vector<int32_t> line, labels;
@@ -512,6 +529,17 @@ void printVectors(int argc, char** argv) {
   exit(0);
 }
 
+void printAttr(int argc, char** argv) {
+  if (argc != 3) {
+    printPrintVectorsUsage();
+    exit(EXIT_FAILURE);
+  }
+  FastText fasttext;
+  fasttext.loadModel(std::string(argv[2]));
+  fasttext.printAttrs();
+  exit(0);
+}
+
 void train(int argc, char** argv) {
   std::shared_ptr<Args> a = std::make_shared<Args>();
   a->parseArgs(argc, argv, 1);
@@ -544,6 +572,8 @@ int main(int argc, char** argv) {
     predict(argc, argv);
   } else if (command == "retrain") {
     trainOldModel(argc, argv);
+  } else if (command == "print-attrs") {
+    printAttr(argc, argv);
   }
   else {
     printUsage();

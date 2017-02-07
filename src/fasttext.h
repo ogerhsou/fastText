@@ -35,6 +35,7 @@ class FastText {
 
   public:
     void getVector(Vector&, const std::string&);
+    void getAttr(Vector&, const std::string&);
     void saveVectors();
     void saveModel();
     void loadModel(const std::string&);
@@ -51,6 +52,7 @@ class FastText {
     void wordVectors();
     void textVectors();
     void printVectors();
+    void printAttrs();
     void trainThread(int32_t);
     void train(std::shared_ptr<Args>);
     void trainOldModel(std::shared_ptr<Args>, char**);
