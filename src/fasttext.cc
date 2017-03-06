@@ -155,6 +155,23 @@ void FastText::cbow(Model& model, real lr,
   }
 }
 
+void FastText::cbow_one_side(Model& model, real lr,
+                    const std::vector<int32_t>& line) {
+  std::vector<int32_t> bow;
+  std::uniform_int_distribution<> uniform(1, args_->ws);
+  for (int32_t w = 0; w < line.size(); w++) {
+    int32_t boundary = uniform(model.rng);
+    bow.clear();
+    for (int32_t c = -boundary; c < 0; c++) {
+      if (w + c >= 0) {
+        const std::vector<int32_t>& ngrams = dict_->getNgrams(line[w + c]);
+        bow.insert(bow.end(), ngrams.cbegin(), ngrams.cend());
+      }
+    }
+    model.update(bow, line[w], lr);
+  }
+}
+
 void FastText::cbow_bi(Model& model, real lr,
                     std::vector<int32_t>& line) {
     std::vector<int32_t> bow;
@@ -180,6 +197,20 @@ void FastText::skipgram(Model& model, real lr,
     const std::vector<int32_t>& ngrams = dict_->getNgrams(line[w]);
     for (int32_t c = -boundary; c <= boundary; c++) {
       if (c != 0 && w + c >= 0 && w + c < line.size()) {
+        model.update(ngrams, line[w + c], lr);
+      }
+    }
+  }
+}
+
+void FastText::skipgram_one_side(Model& model, real lr,
+                        const std::vector<int32_t>& line) {
+  std::uniform_int_distribution<> uniform(1, args_->ws);
+  for (int32_t w = 0; w < line.size(); w++) {
+    int32_t boundary = uniform(model.rng);
+    const std::vector<int32_t>& ngrams = dict_->getNgrams(line[w]);
+    for (int32_t c = -boundary; c < 0; c++) {
+      if (w + c >= 0) {
         model.update(ngrams, line[w + c], lr);
       }
     }
@@ -314,7 +345,11 @@ void FastText::trainThread(int32_t threadId) {
       supervised(model, lr, line, labels);
     } else if (args_->model == model_name::cbow) {
       cbow(model, lr, line);
-    } else if (args_->model == model_name::sg || args_->model == model_name::word2vec_sg) {
+    } else if  (args_->model == model_name::cbow_one_side) {
+      cbow_one_side(model, lr, line);
+    } else if (args_->model == model_name::skipgram_one_side) {
+      skipgram_one_side(model, lr, line);
+    } else if (args_->model == model_name::sg) {
       skipgram(model, lr, line);
     } else if (args_->model == model_name::cbow_bi) {
         cbow_bi(model, lr, line);
@@ -562,7 +597,7 @@ int main(int argc, char** argv) {
     exit(EXIT_FAILURE);
   }
   std::string command(argv[1]);
-  if (command == "skipgram" || command == "cbow" || command == "supervised" || command == "cbow_bi" || command == "word2vec_sg") {
+  if (command == "skipgram" || command == "cbow" || command == "cbow_one_side" || command == "skipgram_one_side" || command == "supervised" || command == "cbow_bi") {
     train(argc, argv);
   } else if (command == "test") {
     test(argc, argv);

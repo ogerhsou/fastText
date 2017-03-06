@@ -14,7 +14,7 @@
 #include <ostream>
 #include <string>
 
-enum class model_name : int {cbow=1, sg, sup, cbow_bi, word2vec_sg};
+enum class model_name : int {cbow=1, sg, sup, cbow_bi, cbow_one_side, skipgram_one_side, word2vec_sg};
 enum class loss_name : int {hs=1, ns, softmax};
 
 class Args {
@@ -43,6 +43,7 @@ class Args {
 
     int useAttr;
     std::string attrDir;
+    int w2vFlag;
 
     void parseArgs(int, char**, int);
     void printHelp();

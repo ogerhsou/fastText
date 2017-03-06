@@ -32,7 +32,8 @@ Args::Args() {
   t = 1e-4;
   label = "__label__";
   verbose = 2;
-  useAttr = true;
+  useAttr = 0;
+  w2vFlag = 0;
 }
 
 void Args::parseArgs(int argc, char** argv, int cmdSub) {
@@ -48,6 +49,10 @@ void Args::parseArgs(int argc, char** argv, int cmdSub) {
     model = model_name::cbow;
   } else if (command == "cbow_bi") {
     model = model_name::cbow_bi;
+  } else if (command == "cbow_one_side") {
+    model = model_name::cbow_one_side;
+  } else if (command == "skipgram_one_side") {
+    model = model_name::skipgram_one_side;
   } else if (command == "word2vec_sg") {
     model = model_name::word2vec_sg;
     bucket = 0;
@@ -64,8 +69,12 @@ void Args::parseArgs(int argc, char** argv, int cmdSub) {
       std::cout << "Here is the help! Usage:" << std::endl;
       printHelp();
       exit(EXIT_FAILURE);
+    } else if (strcmp(argv[ai], "-attrFlag") == 0) {
+      useAttr = (atoi(argv[ai + 1]) == 1);
     } else if (useAttr && strcmp(argv[ai], "-attr") == 0) {
       attrDir = std::string(argv[ai + 1]);
+    } else if (strcmp(argv[ai], "-w2vFlag") == 0) {
+      w2vFlag = (atoi(argv[ai + 1]) == 1);
     } else if (strcmp(argv[ai], "-input") == 0) {
       input = std::string(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-test") == 0) {
@@ -131,7 +140,7 @@ void Args::parseArgs(int argc, char** argv, int cmdSub) {
     printHelp();
     exit(EXIT_FAILURE);
   }
-  if (wordNgrams <= 1 && maxn == 0) {
+  if (wordNgrams <= 1 && maxn == 0 || w2vFlag == 1 && useAttr == 0) {
     bucket = 0;
   }
 }
@@ -142,8 +151,10 @@ void Args::printHelp() {
     << "The following arguments are mandatory:\n"
     << "  -input        training file path\n"
     << "  -output       output file path\n"
-    << "  -attr       attr file path if useAttr flag is true\n\n"
     << "The following arguments are optional:\n"
+    << "  -attrFlag       if 1, use attr. Need to set attr\n\n"
+    << "  -attr       attr file path need to be set if useAttr flag is 1\n\n"
+    << "  -w2vFlag       if 1, degrade fasttext to word2vec\n\n"
     << "  -lr           learning rate [" << lr << "]\n"
     << "  -lrUpdateRate change the rate of updates for the learning rate [" << lrUpdateRate << "]\n"
     << "  -dim          size of word vectors [" << dim << "]\n"
@@ -177,6 +188,7 @@ void Args::save(std::ostream& out) {
   out.write((char*) &(maxn), sizeof(int));
   out.write((char*) &(lrUpdateRate), sizeof(int));
   out.write((char*) &(t), sizeof(double));
+  out.write((char*) &(w2vFlag), sizeof(int));
   out.write((char*) &(useAttr), sizeof(int));
   int len = attrDir.size();
   out.write((char*) &(len), sizeof(int));
@@ -198,6 +210,7 @@ void Args::load(std::istream& in) {
   in.read((char*) &(maxn), sizeof(int));
   in.read((char*) &(lrUpdateRate), sizeof(int));
   in.read((char*) &(t), sizeof(double));
+  in.read((char*) &(w2vFlag), sizeof(int));
   in.read((char*) &(useAttr), sizeof(int));
   int len;
   in.read((char*) &(len), sizeof(int));

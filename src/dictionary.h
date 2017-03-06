@@ -38,7 +38,7 @@ class Dictionary {
 
     int32_t find(const std::string&);
     void initTableDiscard();
-    void initNgrams(model_name);
+    void initNgrams(int);
     void initNgrams(std::string);
     void threshold(int64_t);
     void threshold(int64_t, const int oriSize);
