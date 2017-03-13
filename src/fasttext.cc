@@ -19,7 +19,7 @@
 #include <algorithm>
 
 namespace fasttext {
-
+    
 void FastText::getVector(Vector& vec, const std::string& word) {
   const std::vector<int32_t>& ngrams = dict_->getNgrams(word);
   vec.zero();
@@ -29,6 +29,17 @@ void FastText::getVector(Vector& vec, const std::string& word) {
   if (ngrams.size() > 0) {
     vec.mul(1.0 / ngrams.size());
   }
+}
+    
+void FastText::getLabels(Vector& vec, const std::string& word) {
+    const std::vector<int32_t>& ngrams = dict_->getLabelsNgrams(word);
+    vec.zero();
+    for (auto it = ngrams.begin(); it != ngrams.end(); ++it) {
+        vec.addRow(*output_, *it);
+    }
+    if (ngrams.size() > 0) {
+        vec.mul(1.0 / ngrams.size());
+    }
 }
 
 void FastText::saveVectors() {
@@ -46,7 +57,23 @@ void FastText::saveVectors() {
   }
   ofs.close();
 }
-
+    
+void FastText::saveLabels() {
+    std::ofstream ofs(args_->output + "_label.vec");
+    if (!ofs.is_open()) {
+        std::cout << "Error opening file for saving vectors." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    ofs << dict_->nlabels() << " " << args_->dim << std::endl;
+    Vector vec(args_->dim);
+    for (int32_t i = 0; i < dict_->nlabels(); i++) {
+        std::string word = dict_->getLabel(i);
+        getLabels(vec, word);
+        ofs << word << " " << vec << std::endl;
+    }
+    ofs.close();
+}
+    
 void FastText::saveModel() {
   std::ofstream ofs(args_->output + ".bin", std::ofstream::binary);
   if (!ofs.is_open()) {
@@ -147,18 +174,29 @@ void FastText::test(std::istream& in, int32_t k) {
   int32_t nexamples = 0, nlabels = 0;
   double precision = 0.0;
   std::vector<int32_t> line, labels;
+  std::unordered_set<int32_t> candidate_labels;
 
+  bool old_test_flag = false;
   while (in.peek() != EOF) {
-    dict_->getLine(in, line, labels, model_->rng);
+    dict_->getLine(in, candidate_labels, line, labels, model_->rng);
     dict_->addNgrams(line, args_->wordNgrams);
     if (labels.size() > 0 && line.size() > 0) {
       std::vector<std::pair<real, int32_t>> modelPredictions;
-      model_->predict(line, k, modelPredictions);
-      for (auto it = modelPredictions.cbegin(); it != modelPredictions.cend(); it++) {
+      if (candidate_labels.size() == 0 || old_test_flag)
+        model_->predict(line, k, modelPredictions);
+      else
+        model_->predict(candidate_labels, line, k, modelPredictions);
+      auto it = modelPredictions.cbegin();
+      if(fabs(exp(it->first) - 1.0/candidate_labels.size()) < 1e-2)
+        continue;
+      for (; it != modelPredictions.cend(); it++) {
+        std::cout << it->second;
+        std::cout << ' ' << exp(it->first) << ' ';
         if (std::find(labels.begin(), labels.end(), it->second) != labels.end()) {
           precision += 1.0;
         }
       }
+      std::cout << std::endl;
       nexamples++;
       nlabels += labels.size();
     }
@@ -363,8 +401,9 @@ void FastText::train(std::shared_ptr<Args> args) {
   model_ = std::make_shared<Model>(input_, output_, args_, 0);
 
   saveModel();
-  if (args_->model != model_name::sup) {
-    saveVectors();
+  saveVectors();
+  if (args_->model == model_name::sup) {
+    saveLabels();
   }
 }
 

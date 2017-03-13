@@ -12,6 +12,8 @@
 
 #include <cstdint>
 #include <ostream>
+#include <unordered_set>
+#include <unordered_map>
 
 #include "real.h"
 
@@ -24,6 +26,7 @@ class Vector {
   public:
     int64_t m_;
     real* data_;
+    std::unordered_map<int, real> id_val;
 
     explicit Vector(int64_t);
     ~Vector();
@@ -37,6 +40,7 @@ class Vector {
     void addRow(const Matrix&, int64_t);
     void addRow(const Matrix&, int64_t, real);
     void mul(const Matrix&, const Vector&);
+    void mul(const std::unordered_set<int32_t>&, const Matrix&, const Vector&);
     int64_t argmax();
 };
 

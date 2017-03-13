@@ -16,6 +16,7 @@
 #include <ostream>
 #include <random>
 #include <memory>
+#include <unordered_set>
 
 #include "args.h"
 #include "real.h"
@@ -65,6 +66,7 @@ class Dictionary {
     std::string getWord(int32_t) const;
     const std::vector<int32_t>& getNgrams(int32_t) const;
     const std::vector<int32_t> getNgrams(const std::string&) const;
+    const std::vector<int32_t> getLabelsNgrams(const std::string&) const;
     void computeNgrams(const std::string&, std::vector<int32_t>&) const;
     uint32_t hash(const std::string& str) const;
     void add(const std::string&);
@@ -76,6 +78,8 @@ class Dictionary {
     std::vector<int64_t> getCounts(entry_type) const;
     void addNgrams(std::vector<int32_t>&, int32_t) const;
     int32_t getLine(std::istream&, std::vector<int32_t>&,
+                    std::vector<int32_t>&, std::minstd_rand&) const;
+    int32_t getLine(std::istream&, std::unordered_set<int32_t>&, std::vector<int32_t>&,
                     std::vector<int32_t>&, std::minstd_rand&) const;
     void threshold(int64_t, int64_t);
 };

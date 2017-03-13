@@ -14,6 +14,7 @@
 #include <random>
 #include <utility>
 #include <memory>
+#include <unordered_set>
 
 #include "args.h"
 #include "matrix.h"
@@ -79,6 +80,11 @@ class Model {
     void predict(const std::vector<int32_t>&, int32_t,
                  std::vector<std::pair<real, int32_t>>&,
                  Vector&, Vector&) const;
+    void predict(const std::unordered_set<int32_t>&, const std::vector<int32_t>&, int32_t,
+                 std::vector<std::pair<real, int32_t>>&,
+                 Vector&, Vector&) const;
+    void predict(const std::unordered_set<int32_t>&, const std::vector<int32_t>&, int32_t,
+                 std::vector<std::pair<real, int32_t>>&);
     void predict(const std::vector<int32_t>&, int32_t,
                  std::vector<std::pair<real, int32_t>>&);
     void dfs(int32_t, int32_t, real,
@@ -86,9 +92,12 @@ class Model {
              Vector&) const;
     void findKBest(int32_t, std::vector<std::pair<real, int32_t>>&,
                    Vector&, Vector&) const;
+    void findKBest(const std::unordered_set<int32_t>&, int32_t, std::vector<std::pair<real, int32_t>>&,
+                   Vector&, Vector&) const;
     void update(const std::vector<int32_t>&, int32_t, real);
     void computeHidden(const std::vector<int32_t>&, Vector&) const;
     void computeOutputSoftmax(Vector&, Vector&) const;
+    void computeOutputSoftmax(const std::unordered_set<int32_t>&, Vector&, Vector&) const;
     void computeOutputSoftmax();
 
     void setTargetCounts(const std::vector<int64_t>&);

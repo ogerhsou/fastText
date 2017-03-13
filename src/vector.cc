@@ -70,6 +70,18 @@ void Vector::mul(const Matrix& A, const Vector& vec) {
     }
   }
 }
+    
+void Vector::mul(const std::unordered_set<int32_t>& candidate_labels, const Matrix& A, const Vector& vec) {
+//  assert(A.m_ == m_);
+  assert(A.n_ == vec.m_);
+  for (auto it = candidate_labels.begin(); it != candidate_labels.end(); ++it) {
+    int64_t i = *it;
+    id_val[i] = 0.0;
+    for (int64_t j = 0; j < A.n_; j++) {
+      id_val[i] += A.data_[i * A.n_ + j] * vec.data_[j];
+    }
+  }
+}
 
 int64_t Vector::argmax() {
   real max = data_[0];

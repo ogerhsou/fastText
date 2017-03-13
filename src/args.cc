@@ -42,7 +42,7 @@ void Args::parseArgs(int argc, char** argv) {
   std::string command(argv[1]);
   if (command == "supervised") {
     model = model_name::sup;
-    loss = loss_name::softmax;
+//    loss = loss_name::softmax;
     minCount = 1;
     minn = 0;
     maxn = 0;

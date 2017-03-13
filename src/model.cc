@@ -89,6 +89,21 @@ void Model::computeOutputSoftmax(Vector& hidden, Vector& output) const {
     output[i] /= z;
   }
 }
+    
+void Model::computeOutputSoftmax(const std::unordered_set<int32_t>& candidate_labels, Vector& hidden, Vector& output) const {
+  output.mul(candidate_labels, *wo_, hidden);
+  real max = -1000000, z = 0.0;
+  for (auto it = candidate_labels.begin(); it != candidate_labels.end(); ++it) {
+    max = std::max(output.id_val[*it], max);
+  }
+  for (auto it = candidate_labels.begin(); it != candidate_labels.end(); ++it) {
+    output.id_val[*it] = exp(output.id_val[*it] - max);
+    z += output.id_val[*it];
+  }
+  for (auto it = candidate_labels.begin(); it != candidate_labels.end(); ++it) {
+      output.id_val[*it] /= z;
+  }
+}
 
 void Model::computeOutputSoftmax() {
   computeOutputSoftmax(hidden_, output_);
@@ -119,7 +134,21 @@ bool Model::comparePairs(const std::pair<real, int32_t> &l,
                          const std::pair<real, int32_t> &r) {
   return l.first > r.first;
 }
-
+    
+void Model::predict(const std::unordered_set<int32_t>& candidate_labels, const std::vector<int32_t>& input, int32_t k,
+                    std::vector<std::pair<real, int32_t>>& heap,
+                    Vector& hidden, Vector& output) const {
+  assert(k > 0);
+  heap.reserve(k + 1);
+  computeHidden(input, hidden);
+  if (args_->loss == loss_name::hs) {
+    dfs(k, 2 * osz_ - 2, 0.0, heap, hidden);
+  } else {
+    findKBest(candidate_labels, k, heap, hidden, output);
+  }
+  std::sort_heap(heap.begin(), heap.end(), comparePairs);
+}
+    
 void Model::predict(const std::vector<int32_t>& input, int32_t k,
                     std::vector<std::pair<real, int32_t>>& heap,
                     Vector& hidden, Vector& output) const {
@@ -138,6 +167,12 @@ void Model::predict(const std::vector<int32_t>& input, int32_t k,
                     std::vector<std::pair<real, int32_t>>& heap) {
   predict(input, k, heap, hidden_, output_);
 }
+    
+void Model::predict(const std::unordered_set<int32_t>& candidate_labels, const std::vector<int32_t>& input, int32_t k,
+                    std::vector<std::pair<real, int32_t>>& heap) {
+  Vector candidate_labels_output(0);
+  predict(candidate_labels, input, k, heap, hidden_, candidate_labels_output);
+}
 
 void Model::findKBest(int32_t k, std::vector<std::pair<real, int32_t>>& heap,
                       Vector& hidden, Vector& output) const {
@@ -154,7 +189,24 @@ void Model::findKBest(int32_t k, std::vector<std::pair<real, int32_t>>& heap,
     }
   }
 }
-
+    
+void Model::findKBest(const std::unordered_set<int32_t>& candidate_labels, int32_t k, std::vector<std::pair<real, int32_t>>& heap,
+                      Vector& hidden, Vector& candidate_labels_output) const {
+  
+  computeOutputSoftmax(candidate_labels, hidden, candidate_labels_output);
+  for (auto it = candidate_labels.begin(); it != candidate_labels.end(); ++it) {
+    if (heap.size() == k && log(candidate_labels_output.id_val[*it]) < heap.front().first) {
+      continue;
+    }
+    heap.push_back(std::make_pair(log(candidate_labels_output.id_val[*it]), *it));
+    std::push_heap(heap.begin(), heap.end(), comparePairs);
+    if (heap.size() > k) {
+      std::pop_heap(heap.begin(), heap.end(), comparePairs);
+      heap.pop_back();
+    }
+  }
+}
+    
 void Model::dfs(int32_t k, int32_t node, real score,
                 std::vector<std::pair<real, int32_t>>& heap,
                 Vector& hidden) const {
