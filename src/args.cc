@@ -14,12 +14,15 @@
 
 #include <iostream>
 
+namespace fasttext {
+
 Args::Args() {
   lr = 0.05;
   dim = 100;
   ws = 5;
   epoch = 5;
   minCount = 5;
+  minCountLabel = 0;
   neg = 5;
   wordNgrams = 1;
   loss = loss_name::ns;
@@ -32,11 +35,11 @@ Args::Args() {
   t = 1e-4;
   label = "__label__";
   verbose = 2;
-  useAttr = true;
+  pretrainedVectors = "";
 }
 
-void Args::parseArgs(int argc, char** argv, int cmdSub) {
-  std::string command(argv[cmdSub]);
+void Args::parseArgs(int argc, char** argv) {
+  std::string command(argv[1]);
   if (command == "supervised") {
     model = model_name::sup;
     loss = loss_name::softmax;
@@ -47,8 +50,7 @@ void Args::parseArgs(int argc, char** argv, int cmdSub) {
   } else if (command == "cbow") {
     model = model_name::cbow;
   }
-
-  int ai = cmdSub + 1;
+  int ai = 2;
   while (ai < argc) {
     if (argv[ai][0] != '-') {
       std::cout << "Provided argument without a dash! Usage:" << std::endl;
@@ -59,8 +61,6 @@ void Args::parseArgs(int argc, char** argv, int cmdSub) {
       std::cout << "Here is the help! Usage:" << std::endl;
       printHelp();
       exit(EXIT_FAILURE);
-    } else if (useAttr && strcmp(argv[ai], "-attr") == 0) {
-      attrDir = std::string(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-input") == 0) {
       input = std::string(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-test") == 0) {
@@ -79,6 +79,8 @@ void Args::parseArgs(int argc, char** argv, int cmdSub) {
       epoch = atoi(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-minCount") == 0) {
       minCount = atoi(argv[ai + 1]);
+    } else if (strcmp(argv[ai], "-minCountLabel") == 0) {
+      minCountLabel = atoi(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-neg") == 0) {
       neg = atoi(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-wordNgrams") == 0) {
@@ -109,6 +111,8 @@ void Args::parseArgs(int argc, char** argv, int cmdSub) {
       label = std::string(argv[ai + 1]);
     } else if (strcmp(argv[ai], "-verbose") == 0) {
       verbose = atoi(argv[ai + 1]);
+    } else if (strcmp(argv[ai], "-pretrainedVectors") == 0) {
+      pretrainedVectors = std::string(argv[ai + 1]);
     } else {
       std::cout << "Unknown argument: " << argv[ai] << std::endl;
       printHelp();
@@ -121,40 +125,39 @@ void Args::parseArgs(int argc, char** argv, int cmdSub) {
     printHelp();
     exit(EXIT_FAILURE);
   }
-  if (useAttr && attrDir.empty()) {
-    std::cout << "Empty attr path." << std::endl;
-    printHelp();
-    exit(EXIT_FAILURE);
-  }
   if (wordNgrams <= 1 && maxn == 0) {
     bucket = 0;
   }
 }
 
 void Args::printHelp() {
+  std::string lname = "ns";
+  if (loss == loss_name::hs) lname = "hs";
+  if (loss == loss_name::softmax) lname = "softmax";
   std::cout
     << "\n"
     << "The following arguments are mandatory:\n"
-    << "  -input        training file path\n"
-    << "  -output       output file path\n"
-    << "  -attr       attr file path if useAttr flag is true\n\n"
+    << "  -input              training file path\n"
+    << "  -output             output file path\n\n"
     << "The following arguments are optional:\n"
-    << "  -lr           learning rate [" << lr << "]\n"
-    << "  -lrUpdateRate change the rate of updates for the learning rate [" << lrUpdateRate << "]\n"
-    << "  -dim          size of word vectors [" << dim << "]\n"
-    << "  -ws           size of the context window [" << ws << "]\n"
-    << "  -epoch        number of epochs [" << epoch << "]\n"
-    << "  -minCount     minimal number of word occurences [" << minCount << "]\n"
-    << "  -neg          number of negatives sampled [" << neg << "]\n"
-    << "  -wordNgrams   max length of word ngram [" << wordNgrams << "]\n"
-    << "  -loss         loss function {ns, hs, softmax} [ns]\n"
-    << "  -bucket       number of buckets [" << bucket << "]\n"
-    << "  -minn         min length of char ngram [" << minn << "]\n"
-    << "  -maxn         max length of char ngram [" << maxn << "]\n"
-    << "  -thread       number of threads [" << thread << "]\n"
-    << "  -t            sampling threshold [" << t << "]\n"
-    << "  -label        labels prefix [" << label << "]\n"
-    << "  -verbose      verbosity level [" << verbose << "]\n"
+    << "  -lr                 learning rate [" << lr << "]\n"
+    << "  -lrUpdateRate       change the rate of updates for the learning rate [" << lrUpdateRate << "]\n"
+    << "  -dim                size of word vectors [" << dim << "]\n"
+    << "  -ws                 size of the context window [" << ws << "]\n"
+    << "  -epoch              number of epochs [" << epoch << "]\n"
+    << "  -minCount           minimal number of word occurences [" << minCount << "]\n"
+    << "  -minCountLabel      minimal number of label occurences [" << minCountLabel << "]\n"
+    << "  -neg                number of negatives sampled [" << neg << "]\n"
+    << "  -wordNgrams         max length of word ngram [" << wordNgrams << "]\n"
+    << "  -loss               loss function {ns, hs, softmax} [ns]\n"
+    << "  -bucket             number of buckets [" << bucket << "]\n"
+    << "  -minn               min length of char ngram [" << minn << "]\n"
+    << "  -maxn               max length of char ngram [" << maxn << "]\n"
+    << "  -thread             number of threads [" << thread << "]\n"
+    << "  -t                  sampling threshold [" << t << "]\n"
+    << "  -label              labels prefix [" << label << "]\n"
+    << "  -verbose            verbosity level [" << verbose << "]\n"
+    << "  -pretrainedVectors  pretrained word vectors for supervised learning []"
     << std::endl;
 }
 
@@ -172,11 +175,6 @@ void Args::save(std::ostream& out) {
   out.write((char*) &(maxn), sizeof(int));
   out.write((char*) &(lrUpdateRate), sizeof(int));
   out.write((char*) &(t), sizeof(double));
-  out.write((char*) &(useAttr), sizeof(int));
-  int len = attrDir.size();
-  out.write((char*) &(len), sizeof(int));
-  out.write(attrDir.c_str(), sizeof(char)*attrDir.size());
-
 }
 
 void Args::load(std::istream& in) {
@@ -193,11 +191,6 @@ void Args::load(std::istream& in) {
   in.read((char*) &(maxn), sizeof(int));
   in.read((char*) &(lrUpdateRate), sizeof(int));
   in.read((char*) &(t), sizeof(double));
-  in.read((char*) &(useAttr), sizeof(int));
-  int len;
-  in.read((char*) &(len), sizeof(int));
-  char *tmpStr = new char[len];
-  in.read(tmpStr, sizeof(char)*len);
-  attrDir = tmpStr;
-  delete[] tmpStr;
+}
+
 }

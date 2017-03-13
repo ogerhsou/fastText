@@ -16,10 +16,11 @@
 #include <ostream>
 #include <random>
 #include <memory>
-#include <unordered_map>
 
 #include "args.h"
 #include "real.h"
+
+namespace fasttext {
 
 typedef int32_t id_type;
 enum class entry_type : int8_t {word=0, label=1};
@@ -36,12 +37,9 @@ class Dictionary {
     static const int32_t MAX_VOCAB_SIZE = 30000000;
     static const int32_t MAX_LINE_SIZE = 1024;
 
-    int32_t find(const std::string&);
+    int32_t find(const std::string&) const;
     void initTableDiscard();
     void initNgrams();
-    void initNgrams(std::string);
-    void threshold(int64_t);
-    void threshold(int64_t, const int oriSize);
 
     std::shared_ptr<Args> args_;
     std::vector<int32_t> word2int_;
@@ -58,30 +56,30 @@ class Dictionary {
     static const std::string EOW;
 
     explicit Dictionary(std::shared_ptr<Args>);
-    int32_t nwords();
-    int32_t nlabels();
-    int64_t ntokens();
-    int32_t getId(const std::string&);
-    entry_type getType(int32_t);
-    bool discard(int32_t, real);
-    std::string getWord(int32_t);
-    const std::vector<int32_t>& getNgrams(int32_t);
-    const std::vector<int32_t> getNgrams(const std::string&);
-    void computeNgrams(const std::string&, std::vector<int32_t>&);
-    void computeNgramsNew(const std::string&, std::vector<int32_t>&, std::unordered_map<std::string, std::vector<std::string> > &);
-    uint32_t hash(const std::string& str);
+    int32_t nwords() const;
+    int32_t nlabels() const;
+    int64_t ntokens() const;
+    int32_t getId(const std::string&) const;
+    entry_type getType(int32_t) const;
+    bool discard(int32_t, real) const;
+    std::string getWord(int32_t) const;
+    const std::vector<int32_t>& getNgrams(int32_t) const;
+    const std::vector<int32_t> getNgrams(const std::string&) const;
+    void computeNgrams(const std::string&, std::vector<int32_t>&) const;
+    uint32_t hash(const std::string& str) const;
     void add(const std::string&);
-    bool readWord(std::istream&, std::string&);
+    bool readWord(std::istream&, std::string&) const;
     void readFromFile(std::istream&);
-    void readFromFile(std::istream&, std::string);
-    std::string getLabel(int32_t);
-    void save(std::ostream&);
+    std::string getLabel(int32_t) const;
+    void save(std::ostream&) const;
     void load(std::istream&);
-    void loadWordOnly(std::istream&);
-    std::vector<int64_t> getCounts(entry_type);
-    void addNgrams(std::vector<int32_t>&, int32_t);
+    std::vector<int64_t> getCounts(entry_type) const;
+    void addNgrams(std::vector<int32_t>&, int32_t) const;
     int32_t getLine(std::istream&, std::vector<int32_t>&,
-                    std::vector<int32_t>&, std::minstd_rand&);
+                    std::vector<int32_t>&, std::minstd_rand&) const;
+    void threshold(int64_t, int64_t);
 };
+
+}
 
 #endif

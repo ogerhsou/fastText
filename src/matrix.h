@@ -16,6 +16,8 @@
 
 #include "real.h"
 
+namespace fasttext {
+
 class Vector;
 
 class Matrix {
@@ -32,14 +34,14 @@ class Matrix {
     ~Matrix();
 
     void zero();
-    void zero(int64_t, int64_t);
     void uniform(real);
-    void uniform(real, int64_t, int64_t);
     real dotRow(const Vector&, int64_t);
     void addRow(const Vector&, int64_t, real);
 
     void save(std::ostream&);
     void load(std::istream&);
 };
+
+}
 
 #endif

@@ -23,6 +23,8 @@
 #include "real.h"
 #include "args.h"
 
+namespace fasttext {
+
 class FastText {
   private:
     std::shared_ptr<Args> args_;
@@ -38,21 +40,25 @@ class FastText {
     void saveVectors();
     void saveModel();
     void loadModel(const std::string&);
-    void loadModel(const std::string&, std::shared_ptr<Args>);
+    void loadModel(std::istream&);
     void printInfo(real, real);
 
     void supervised(Model&, real, const std::vector<int32_t>&,
                     const std::vector<int32_t>&);
     void cbow(Model&, real, const std::vector<int32_t>&);
     void skipgram(Model&, real, const std::vector<int32_t>&);
-    void test(const std::string&, int32_t);
-    void predict(const std::string&, int32_t, bool);
+    void test(std::istream&, int32_t);
+    void predict(std::istream&, int32_t, bool);
+    void predict(std::istream&, int32_t, std::vector<std::pair<real,std::string>>&) const;
     void wordVectors();
     void textVectors();
     void printVectors();
     void trainThread(int32_t);
     void train(std::shared_ptr<Args>);
-    void trainOldModel(std::shared_ptr<Args>, char**);
+
+    void loadVectors(std::string);
 };
+
+}
 
 #endif
